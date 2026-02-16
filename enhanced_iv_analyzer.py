@@ -46,10 +46,10 @@ st.title("⚡ Enhanced Discharge I-V Analysis")
 # Sidebar
 with st.sidebar:
     st.header("📁 Upload Files")
-    w1_v_file = st.file_uploader("Electrode 1 Voltage CSV", type=['csv'], key='w1v')
-    w1_i_file = st.file_uploader("Electrode 1 Current CSV", type=['csv'], key='w1i')
-    w2_v_file = st.file_uploader("Electrode 2 Voltage CSV", type=['csv'], key='w2v')
-    w2_i_file = st.file_uploader("Electrode 2 Current CSV", type=['csv'], key='w2i')
+    w1_v_file = st.file_uploader("Electrode 1 Voltage file", type=['csv'], key='w1v')
+    w1_i_file = st.file_uploader("Electrode 1 Current file", type=['csv'], key='w1i')
+    w2_v_file = st.file_uploader("Electrode 2 Voltage file", type=['csv'], key='w2v')
+    w2_i_file = st.file_uploader("Electrode 2 Current file", type=['csv'], key='w2i')
     
     st.divider()
     st.header("⚙️ Settings")
