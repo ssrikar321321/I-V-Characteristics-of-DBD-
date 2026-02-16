@@ -58,28 +58,94 @@ with st.sidebar:
     
     st.divider()
     st.header("🔧 Current Probe Settings")
-    st.info("💡 Current probes output voltage that represents current")
+    st.warning("⚠️ **IMPORTANT:** Check if your oscilloscope CSV values are already corrected!")
     
     col1, col2 = st.columns(2)
     with col1:
         current_probe_conversion = st.number_input(
-            "Conversion (V/A)", 
+            "Probe Conversion (V/A)", 
             value=0.1, 
             step=0.01,
             format="%.3f",
-            help="e.g., 0.1 V/A means 0.1V = 1A, so 1V = 10A"
+            help="From probe label: e.g., 0.1 V/A means 0.1V = 1A"
         )
     with col2:
         probe_attenuation = st.number_input(
             "Probe Attenuation",
             value=10,
             step=1,
-            help="Usually 10X (scope already applies this)"
+            help="Usually 10X - check probe settings"
         )
     
+    # Critical setting: Probe vs Scope mismatch check
+    st.error("⚠️ **IMPORTANT: Probe and Scope Setting Mismatch Detected!**")
+    
+    actual_probe = st.radio(
+        "🔌 **What is your ACTUAL PHYSICAL PROBE?**",
+        options=[
+            "1X probe (no attenuation in probe)",
+            "10X probe (probe has built-in 10X attenuation)"
+        ],
+        index=0,  # User has 1X probe
+        help="Check the physical probe - usually labeled on the probe body"
+    )
+    
+    scope_setting = st.radio(
+        "📊 **What was the SCOPE CHANNEL SETTING when you captured?**",
+        options=[
+            "Set to 1X (scope expects 1X probe)",
+            "Set to 10X (scope expects 10X probe)"
+        ],
+        index=1,  # User set scope to 10X
+        help="Check what you set on the oscilloscope channel settings"
+    )
+    
+    # Detect mismatch
+    probe_is_1x = (actual_probe == "1X probe (no attenuation in probe)")
+    scope_set_10x = (scope_setting == "Set to 10X (scope expects 10X probe)")
+    
+    mismatch = probe_is_1x and scope_set_10x
+    
+    if mismatch:
+        st.error(f"""
+        🚨 **MISMATCH DETECTED!**
+        
+        **Problem:**
+        - Your probe: 1X (no attenuation)
+        - Scope setting: 10X 
+        - Result: **Scope incorrectly multiplied values by 10!**
+        
+        **What happened:**
+        1. Current probe outputs voltage (e.g., 0.002 V)
+        2. 1X probe passes it unchanged → 0.002 V reaches scope
+        3. Scope thinks it's a 10X probe → multiplies by 10
+        4. CSV shows: 0.02 V ← **10× too high!** ❌
+        
+        **Solution:**
+        Tool will divide by 10 first, then apply 0.1 V/A conversion.
+        
+        **Formula:** Current = (CSV_voltage / 10) / {current_probe_conversion}
+        """)
+        # Need to undo the wrong 10X multiplication
+        apply_correction_factor = 0.1  # Divide by 10 to undo wrong scaling
+    else:
+        st.success("✅ Probe and scope settings match!")
+        apply_correction_factor = 1.0  # No correction needed
+    
     # Show conversion example
-    st.caption(f"📊 Example: {current_probe_conversion} V = 1 A → 1 V = {1/current_probe_conversion:.1f} A")
-    st.caption(f"⚠️ Scope applies {probe_attenuation}X attenuation automatically")
+    if mismatch:
+        st.info(f"""
+        🔢 **Conversion with mismatch correction:**
+        - Step 1: Divide CSV value / 10 (undo wrong scope multiplication)
+        - Step 2: Divide by {current_probe_conversion} V/A (probe conversion)
+        - Example: 0.02 V in CSV → (0.02 / 10) / {current_probe_conversion} = {(0.02 / 10) / current_probe_conversion:.4f} A = {(0.02 / 10) / current_probe_conversion * 1000:.2f} mA
+        """)
+    else:
+        st.info(f"""
+        ✅ **Normal conversion (probe and scope match):**
+        - Divide CSV value by {current_probe_conversion} V/A to get current
+        - Example: 0.002 V in CSV → 0.002 / {current_probe_conversion} = {0.002 / current_probe_conversion:.3f} A = {0.002 / current_probe_conversion * 1000:.1f} mA
+        """)
     
     st.divider()
     st.header("🎨 Display")
@@ -132,25 +198,32 @@ def load_csv(file):
     df = pd.read_csv(file, skiprows=16)
     return {'time': df.iloc[:, 0].values, 'signal': df.iloc[:, 1].values}
 
-def convert_current_probe(voltage_signal, conversion_factor):
+def convert_current_probe(voltage_signal, conversion_factor, correction_factor=1.0):
     """
     Convert current probe voltage output to actual current
     
     Parameters:
     -----------
     voltage_signal : array
-        Voltage readings from current probe (already corrected by scope for attenuation)
+        Voltage readings from current probe CSV
     conversion_factor : float
-        V/A conversion (e.g., 0.1 means 0.1V = 1A)
+        V/A conversion from probe specs (e.g., 0.1 means 0.1V = 1A)
+    correction_factor : float
+        Correction for probe/scope mismatch
+        - 1.0: No correction (probe and scope match)
+        - 0.1: Divide by 10 (1X probe but scope set to 10X)
+        - 10.0: Multiply by 10 (10X probe but scope set to 1X)
     
     Returns:
     --------
     current : array
         Actual current in Amperes
     """
-    # Current (A) = Voltage (V) / (V/A)
-    # Example: 0.5V reading with 0.1 V/A → 0.5 / 0.1 = 5 A
-    return voltage_signal / conversion_factor
+    # Apply correction for any probe/scope mismatch
+    corrected_voltage = voltage_signal * correction_factor
+    
+    # Convert to current
+    return corrected_voltage / conversion_factor
 
 def calculate_metrics(time, voltage, current, frequency):
     dt = time[-1] - time[0]
@@ -188,23 +261,38 @@ if all_loaded:
     # Voltage signals (direct from scope)
     v1, v2 = data['w1_v']['signal'], data['w2_v']['signal']
     
-    # Current signals - IMPORTANT: Convert from probe voltage to actual current
-    # Current probe outputs voltage, scope shows this voltage (already corrected for attenuation)
-    # We need to convert: Current (A) = Voltage_reading (V) / Conversion_factor (V/A)
-    i1_voltage = data['w1_i']['signal']  # Voltage from current probe
-    i2_voltage = data['w2_i']['signal']  # Voltage from current probe
-    i1 = convert_current_probe(i1_voltage, current_probe_conversion)  # Actual current in A
-    i2 = convert_current_probe(i2_voltage, current_probe_conversion)  # Actual current in A
+    # Current signals - Convert from probe voltage to actual current
+    i1_voltage = data['w1_i']['signal']  # Voltage from current probe CSV
+    i2_voltage = data['w2_i']['signal']  # Voltage from current probe CSV
+    
+    # Apply conversion with correction factor
+    i1 = convert_current_probe(i1_voltage, current_probe_conversion, apply_correction_factor)
+    i2 = convert_current_probe(i2_voltage, current_probe_conversion, apply_correction_factor)
     
     # Show conversion info
-    st.success(f"""
-    ✅ **Current Probe Conversion Applied:**
-    - Probe conversion: **{current_probe_conversion} V/A** (means {current_probe_conversion} V = 1 A)
-    - Scope attenuation: **{probe_attenuation}X** (already applied by oscilloscope)
-    - Formula: **Current (A) = Voltage_reading / {current_probe_conversion}**
-    - W1 current: {i1.min()*1e3:.2f} to {i1.max()*1e3:.2f} mA
-    - W2 current: {i2.min()*1e3:.2f} to {i2.max()*1e3:.2f} mA
-    """)
+    if mismatch:
+        st.warning(f"""
+        ⚠️ **Mismatch Correction Applied:**
+        - **Your setup:** 1X probe + Scope set to 10X
+        - **Problem:** CSV values are 10× too high
+        - **Solution:** Divide by 10, then convert
+        - **Formula:** Current (A) = (CSV_voltage × {apply_correction_factor}) / {current_probe_conversion}
+        - **Simplified:** Current (A) = CSV_voltage / {current_probe_conversion / apply_correction_factor:.0f}
+        
+        **Results:**
+        - W1 current: {i1.min()*1e3:.2f} to {i1.max()*1e3:.2f} mA
+        - W2 current: {i2.min()*1e3:.2f} to {i2.max()*1e3:.2f} mA
+        
+        💡 **Recommendation:** For future measurements, set scope to 1X to match your 1X probe!
+        """)
+    else:
+        st.success(f"""
+        ✅ **Current Probe Conversion Applied:**
+        - Probe and scope settings match correctly ✅
+        - Formula: **Current (A) = CSV_voltage / {current_probe_conversion}**
+        - W1 current: {i1.min()*1e3:.2f} to {i1.max()*1e3:.2f} mA
+        - W2 current: {i2.min()*1e3:.2f} to {i2.max()*1e3:.2f} mA
+        """)
     
     metrics_w1 = calculate_metrics(t_w1*1e-6, v1, i1, frequency)
     metrics_w2 = calculate_metrics(t_w2*1e-6, v2, i2, frequency)
