@@ -7,7 +7,7 @@ Comprehensive web-based tool for analyzing dual-electrode atmospheric pressure d
 **Copyright:** © 2024 P. Srikar. All rights reserved.  
 **License:** MIT License  
 
-## 🚀 [Try it Live](https://your-app.streamlit.app)
+## 🚀 [Try it Live](https://wb9794sepftpsffyvcdnce.streamlit.app/)
 
 *Replace with your actual Streamlit Cloud URL after deployment*
 
@@ -20,7 +20,7 @@ Comprehensive web-based tool for analyzing dual-electrode atmospheric pressure d
 ### Plain Text
 ```
 Srikar, P. (2024). Enhanced Discharge I-V Analysis Tool (Version 1.0.0). 
-GitHub repository: https://github.com/YOUR_USERNAME/discharge-iv-analyzer
+GitHub repository:https://github.com/ssrikar321321/I-V-Characteristics-of-DBD-
 ```
 
 ### BibTeX
@@ -30,7 +30,7 @@ GitHub repository: https://github.com/YOUR_USERNAME/discharge-iv-analyzer
   title = {Enhanced Discharge I-V Analysis Tool},
   year = {2024},
   version = {1.0.0},
-  url = {https://github.com/YOUR_USERNAME/discharge-iv-analyzer},
+  url = {https://github.com/ssrikar321321/I-V-Characteristics-of-DBD-},
   note = {MIT License}
 }
 ```
@@ -38,14 +38,14 @@ GitHub repository: https://github.com/YOUR_USERNAME/discharge-iv-analyzer
 ### APA Style
 ```
 Srikar, P. (2024). Enhanced Discharge I-V Analysis Tool (Version 1.0.0) 
-[Computer software]. https://github.com/YOUR_USERNAME/discharge-iv-analyzer
+[Computer software]. https://github.com/ssrikar321321/I-V-Characteristics-of-DBD-
 ```
 
 ### IEEE Style
 ```
 P. Srikar, "Enhanced Discharge I-V Analysis Tool," 2024. [Online]. 
-Available: https://github.com/YOUR_USERNAME/discharge-iv-analyzer
-```
+Available: [https://github.com/YOUR_USERNAME/discharge-iv-analyzer
+```](https://github.com/ssrikar321321/I-V-Characteristics-of-DBD-
 
 ---
 
