@@ -79,8 +79,8 @@ with st.sidebar:
         ```
         Srikar, P. (2024). Enhanced Discharge 
         I-V Analysis Tool. 
-        https://github.com/YOUR_USERNAME/
-        discharge-iv-analyzer
+        https://github.com/ssrikar321321/I-V-Characteristics-of-DBD-
+        
         ```
         
         **BibTeX:**
@@ -90,8 +90,8 @@ with st.sidebar:
           title = {Enhanced Discharge I-V 
                    Analysis Tool},
           year = {2024},
-          url = {https://github.com/YOUR_USERNAME/
-                 discharge-iv-analyzer}
+          url = {https://github.com/ssrikar321321/I-V-Characteristics-of-DBD-
+                 }
         }
         ```
         
