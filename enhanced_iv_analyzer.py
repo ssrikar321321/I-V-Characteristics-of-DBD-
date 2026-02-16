@@ -379,7 +379,7 @@ with col2:
         <p style='margin: 5px 0; font-size: 11px; color: #666;'>
             <strong>Please cite when using this tool in publications:</strong><br>
             Srikar, P. (2024). Enhanced Discharge I-V Analysis Tool.<br>
-            <em>GitHub repository: https://github.com/YOUR_USERNAME/discharge-iv-analyzer</em>
+            <em>GitHub repository: https://github.com/ssrikar321321/I-V-Characteristics-of-DBD-</em>
         </p>
         <p style='margin: 5px 0; font-size: 10px; color: #888;'>
             Licensed under MIT License | Comprehensive discharge characterization
