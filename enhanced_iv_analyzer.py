@@ -8,7 +8,7 @@ All rights reserved.
 
 When using this tool in research or publications, please cite:
     Srikar, P. (2024). Enhanced Discharge I-V Analysis Tool. 
-    GitHub repository: https://github.com/YOUR_USERNAME/discharge-iv-analyzer
+    GitHub repository: https://github.com/ssrikar321321/I-V-Characteristics-of-DBD-
 
 License: MIT License
 For full license text, see LICENSE file.
