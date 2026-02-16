@@ -8,7 +8,7 @@ All rights reserved.
 
 When using this tool in research or publications, please cite:
     Srikar, P. (2024). Enhanced Discharge I-V Analysis Tool. 
-    GitHub repository: https://github.com/ssrikar321321/I-V-Characteristics-of-DBD-
+    GitHub repository: https://github.com/YOUR_USERNAME/discharge-iv-analyzer
 
 License: MIT License
 For full license text, see LICENSE file.
@@ -46,15 +46,40 @@ st.title("⚡ Enhanced Discharge I-V Analysis")
 # Sidebar
 with st.sidebar:
     st.header("📁 Upload Files")
-    w1_v_file = st.file_uploader("Electrode 1 Voltage file", type=['csv'], key='w1v')
-    w1_i_file = st.file_uploader("Electrode 1 Current file", type=['csv'], key='w1i')
-    w2_v_file = st.file_uploader("Electrode 2 Voltage file", type=['csv'], key='w2v')
-    w2_i_file = st.file_uploader("Electrode 2 Current file", type=['csv'], key='w2i')
+    w1_v_file = st.file_uploader("W1 Voltage CSV", type=['csv'], key='w1v')
+    w1_i_file = st.file_uploader("W1 Current CSV", type=['csv'], key='w1i')
+    w2_v_file = st.file_uploader("W2 Voltage CSV", type=['csv'], key='w2v')
+    w2_i_file = st.file_uploader("W2 Current CSV", type=['csv'], key='w2i')
     
     st.divider()
     st.header("⚙️ Settings")
     frequency = st.number_input("Frequency (Hz)", value=20000, step=1000)
     phase_offset = st.slider("W2 Phase Offset (°)", 0, 360, 180)
+    
+    st.divider()
+    st.header("🔧 Current Probe Settings")
+    st.info("💡 Current probes output voltage that represents current")
+    
+    col1, col2 = st.columns(2)
+    with col1:
+        current_probe_conversion = st.number_input(
+            "Conversion (V/A)", 
+            value=0.1, 
+            step=0.01,
+            format="%.3f",
+            help="e.g., 0.1 V/A means 0.1V = 1A, so 1V = 10A"
+        )
+    with col2:
+        probe_attenuation = st.number_input(
+            "Probe Attenuation",
+            value=10,
+            step=1,
+            help="Usually 10X (scope already applies this)"
+        )
+    
+    # Show conversion example
+    st.caption(f"📊 Example: {current_probe_conversion} V = 1 A → 1 V = {1/current_probe_conversion:.1f} A")
+    st.caption(f"⚠️ Scope applies {probe_attenuation}X attenuation automatically")
     
     st.divider()
     st.header("🎨 Display")
@@ -79,8 +104,8 @@ with st.sidebar:
         ```
         Srikar, P. (2024). Enhanced Discharge 
         I-V Analysis Tool. 
-        https://github.com/ssrikar321321/I-V-Characteristics-of-DBD-
-        
+        https://github.com/YOUR_USERNAME/
+        discharge-iv-analyzer
         ```
         
         **BibTeX:**
@@ -90,8 +115,8 @@ with st.sidebar:
           title = {Enhanced Discharge I-V 
                    Analysis Tool},
           year = {2024},
-          url = {https://github.com/ssrikar321321/I-V-Characteristics-of-DBD-
-                 }
+          url = {https://github.com/YOUR_USERNAME/
+                 discharge-iv-analyzer}
         }
         ```
         
@@ -106,6 +131,26 @@ def load_csv(file):
         return None
     df = pd.read_csv(file, skiprows=16)
     return {'time': df.iloc[:, 0].values, 'signal': df.iloc[:, 1].values}
+
+def convert_current_probe(voltage_signal, conversion_factor):
+    """
+    Convert current probe voltage output to actual current
+    
+    Parameters:
+    -----------
+    voltage_signal : array
+        Voltage readings from current probe (already corrected by scope for attenuation)
+    conversion_factor : float
+        V/A conversion (e.g., 0.1 means 0.1V = 1A)
+    
+    Returns:
+    --------
+    current : array
+        Actual current in Amperes
+    """
+    # Current (A) = Voltage (V) / (V/A)
+    # Example: 0.5V reading with 0.1 V/A → 0.5 / 0.1 = 5 A
+    return voltage_signal / conversion_factor
 
 def calculate_metrics(time, voltage, current, frequency):
     dt = time[-1] - time[0]
@@ -140,8 +185,26 @@ if all_loaded:
     t_w1 = (data['w1_v']['time'] - data['w1_v']['time'][0]) * 1e6
     t_w2 = (data['w2_v']['time'] + phase_shift - data['w2_v']['time'][0]) * 1e6
     
-    v1, i1 = data['w1_v']['signal'], data['w1_i']['signal']
-    v2, i2 = data['w2_v']['signal'], data['w2_i']['signal']
+    # Voltage signals (direct from scope)
+    v1, v2 = data['w1_v']['signal'], data['w2_v']['signal']
+    
+    # Current signals - IMPORTANT: Convert from probe voltage to actual current
+    # Current probe outputs voltage, scope shows this voltage (already corrected for attenuation)
+    # We need to convert: Current (A) = Voltage_reading (V) / Conversion_factor (V/A)
+    i1_voltage = data['w1_i']['signal']  # Voltage from current probe
+    i2_voltage = data['w2_i']['signal']  # Voltage from current probe
+    i1 = convert_current_probe(i1_voltage, current_probe_conversion)  # Actual current in A
+    i2 = convert_current_probe(i2_voltage, current_probe_conversion)  # Actual current in A
+    
+    # Show conversion info
+    st.success(f"""
+    ✅ **Current Probe Conversion Applied:**
+    - Probe conversion: **{current_probe_conversion} V/A** (means {current_probe_conversion} V = 1 A)
+    - Scope attenuation: **{probe_attenuation}X** (already applied by oscilloscope)
+    - Formula: **Current (A) = Voltage_reading / {current_probe_conversion}**
+    - W1 current: {i1.min()*1e3:.2f} to {i1.max()*1e3:.2f} mA
+    - W2 current: {i2.min()*1e3:.2f} to {i2.max()*1e3:.2f} mA
+    """)
     
     metrics_w1 = calculate_metrics(t_w1*1e-6, v1, i1, frequency)
     metrics_w2 = calculate_metrics(t_w2*1e-6, v2, i2, frequency)
@@ -379,7 +442,7 @@ with col2:
         <p style='margin: 5px 0; font-size: 11px; color: #666;'>
             <strong>Please cite when using this tool in publications:</strong><br>
             Srikar, P. (2024). Enhanced Discharge I-V Analysis Tool.<br>
-            <em>GitHub repository: https://github.com/ssrikar321321/I-V-Characteristics-of-DBD-</em>
+            <em>GitHub repository: https://github.com/YOUR_USERNAME/discharge-iv-analyzer</em>
         </p>
         <p style='margin: 5px 0; font-size: 10px; color: #888;'>
             Licensed under MIT License | Comprehensive discharge characterization
